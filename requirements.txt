@@ -13,5 +13,5 @@ roma
 kornia
 trimesh
 matplotlib
-pycolmap
+pycolmap==3.10.0
 pyliblzfse
