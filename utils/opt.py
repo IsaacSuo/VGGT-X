@@ -118,7 +118,10 @@ def extract_conf_mask(match_outputs, depth_conf, base_image_path_list):
 @torch.inference_mode()
 def extract_matches(extrinsic, intrinsic, images, depth_conf, base_image_path_list, max_query_pts=4096, batch_size=128, err_range=20):
 
-    xfeat = torch.hub.load('verlab/accelerated_features', 'XFeat', pretrained=True, top_k=max_query_pts)
+    # Load XFeat from local clone to avoid GitHub API rate limits
+    import os
+    local_xfeat_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'accelerated_features')
+    xfeat = torch.hub.load(local_xfeat_path, 'XFeat', source='local', pretrained=True, top_k=max_query_pts)
 
     pairs, pairs_cnt = image_pair_candidates(extrinsic, 30, unique_pairs=True)
     print("Total candidate image pairs found: ", pairs_cnt)
