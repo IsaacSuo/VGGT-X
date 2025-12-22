@@ -1,12 +1,13 @@
 [project]
 authors = [{name = "Jianyuan Wang", email = "jianyuan@robots.ox.ac.uk"}]
 dependencies = [
-    "numpy<2",
+    "numpy>=1.26.1",
     "Pillow",
     "huggingface_hub",
     "einops",
     "safetensors",
     "opencv-python",
+    "tqdm",
 ]
 name = "vggt"
 requires-python = ">= 3.10"

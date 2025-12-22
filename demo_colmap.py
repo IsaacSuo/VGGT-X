@@ -142,7 +142,7 @@ def demo_fn(args):
     if args.use_ga:
         if os.path.exists(os.path.join(target_scene_dir, "matches.pt")):
             print(f"Found existing matches at {os.path.join(target_scene_dir, 'matches.pt')}, loading it")
-            match_outputs = torch.load(os.path.join(target_scene_dir, "matches.pt"))
+            match_outputs = torch.load(os.path.join(target_scene_dir, "matches.pt"), weights_only=False)
         else:
             print("Extracting matches for global alignment")
             if args.max_query_pts is None:

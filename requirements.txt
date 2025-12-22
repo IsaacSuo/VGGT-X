@@ -1,6 +1,6 @@
-torch==2.3.1
-torchvision==0.18.1
-numpy==1.26.1
+torch>=2.3.1
+torchvision>=0.18.1
+numpy>=1.26.1
 viser==0.2.23
 Pillow
 huggingface_hub
@@ -13,5 +13,6 @@ roma
 kornia
 trimesh
 matplotlib
-pycolmap==3.10.0
+pycolmap>=3.10.0
 pyliblzfse
+tqdm

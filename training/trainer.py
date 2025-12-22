@@ -197,7 +197,7 @@ class Trainer:
         logging.info(f"Resuming training from {ckpt_path} (rank {self.rank})")
 
         with g_pathmgr.open(ckpt_path, "rb") as f:
-            checkpoint = torch.load(f, map_location="cpu")
+            checkpoint = torch.load(f, map_location="cpu", weights_only=False)
         
         # Load model state
         model_state_dict = checkpoint["model"] if "model" in checkpoint else checkpoint

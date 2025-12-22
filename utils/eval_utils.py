@@ -184,7 +184,7 @@ def eval_ate(poses_est, poses_gt, save_dir, iterations, final=False, monocular=F
     return ate
 
 
-from evo.tools.plot import colored_line_collection, set_aspect_equal_3d
+from evo.tools.plot import colored_line_collection, set_aspect_equal
 from matplotlib import cm
 def fixed_traj_colormap(ax, traj, array, plot_mode, min_map, max_map, title="", colorbar=True):
     """
@@ -213,7 +213,7 @@ def fixed_traj_colormap(ax, traj, array, plot_mode, min_map, max_map, title="", 
             np.amin(traj.positions_xyz[:, 2]),
             np.amax(traj.positions_xyz[:, 2]))
         if SETTINGS.plot_xyz_realistic:
-            set_aspect_equal_3d(ax)
+            set_aspect_equal(ax)
     fig = plt.gcf()
     if colorbar:
         cbar = fig.colorbar(
