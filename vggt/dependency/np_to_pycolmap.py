@@ -117,7 +117,7 @@ def batch_np_matrix_to_pycolmap(
                     rig.add_ref_sensor(camera.sensor_id)
                 else:
                     # add_sensor requires (sensor_id, sensor_from_rig transform)
-                    identity_pose = pycolmap.Rigid3d(pycolmap.Rotation3d.identity(), [0, 0, 0])
+                    identity_pose = pycolmap.Rigid3d()  # Default constructor creates identity transform
                     rig.add_sensor(camera.sensor_id, identity_pose)
 
         # set image pose
@@ -306,7 +306,7 @@ def batch_np_matrix_to_pycolmap_wo_track(
                     rig.add_ref_sensor(camera.sensor_id)
                 else:
                     # add_sensor requires (sensor_id, sensor_from_rig transform)
-                    identity_pose = pycolmap.Rigid3d(pycolmap.Rotation3d.identity(), [0, 0, 0])
+                    identity_pose = pycolmap.Rigid3d()  # Default constructor creates identity transform
                     rig.add_sensor(camera.sensor_id, identity_pose)
 
         # set image pose
