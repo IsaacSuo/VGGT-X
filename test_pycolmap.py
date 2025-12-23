@@ -130,21 +130,20 @@ try:
     rec = pycolmap.Reconstruction()
     print("Created Reconstruction")
 
-    # Create Rig
-    rig = pycolmap.Rig(rig_id=1)
-    print(f"Created Rig: rig_id={rig.rig_id}")
-
     # Add Point3D
     xyz = np.array([1.0, 2.0, 3.0])
     rgb = np.array([255, 128, 64])
     rec.add_point3D(xyz, pycolmap.Track(), rgb)
     print("Added Point3D")
 
-    rig_added = False
+    # Create Rig
+    rig = pycolmap.Rig(rig_id=1)
+    print(f"Created Rig: rig_id={rig.rig_id}")
 
+    # FIRST PASS: Create all cameras and add all sensors to rig
+    print("\n--- FIRST PASS: Creating cameras and adding sensors ---")
+    cameras_list = []
     for fidx in range(N_FRAMES):
-        print(f"\n--- Frame {fidx} ---")
-
         # Create camera for each frame
         camera = pycolmap.Camera(
             model='PINHOLE',
@@ -152,24 +151,28 @@ try:
             params=[50, 50, 50, 50],
             camera_id=fidx + 1
         )
-        print(f"  Created Camera: camera_id={camera.camera_id}, sensor_id={camera.sensor_id}")
+        print(f"  Camera {fidx}: camera_id={camera.camera_id}, sensor_id={camera.sensor_id}")
         rec.add_camera(camera)
-        print(f"  Added Camera to reconstruction")
+        cameras_list.append(camera)
 
-        # Add sensor to rig
+        # Add sensor to rig BEFORE adding rig to reconstruction
         if fidx == 0:
             rig.add_ref_sensor(camera.sensor_id)
-            print(f"  Added ref_sensor: {camera.sensor_id}")
+            print(f"    Added ref_sensor: {camera.sensor_id}")
         else:
             identity_pose = pycolmap.Rigid3d()
             rig.add_sensor(camera.sensor_id, identity_pose)
-            print(f"  Added sensor: {camera.sensor_id}")
+            print(f"    Added sensor: {camera.sensor_id}")
 
-        # Add rig once
-        if not rig_added:
-            rec.add_rig(rig)
-            rig_added = True
-            print(f"  Added Rig to reconstruction")
+    # Add rig AFTER all sensors are added
+    rec.add_rig(rig)
+    print("\nAdded Rig to reconstruction (after all sensors)")
+
+    # SECOND PASS: Create images and frames
+    print("\n--- SECOND PASS: Creating images and frames ---")
+    for fidx in range(N_FRAMES):
+        print(f"\n--- Frame {fidx} ---")
+        camera = cameras_list[fidx]
 
         # Create pose
         rot = pycolmap.Rotation3d(np.eye(3))
@@ -533,9 +536,11 @@ try:
         print(f"    image.camera_id = {pyimg.camera_id}")
 
         # Get pose matrix
-        matrix = pyimg.cam_from_world.matrix()
-        print(f"    cam_from_world.matrix() shape: {matrix.shape}")
-        print(f"    cam_from_world.matrix():\n{matrix}")
+        # In pycolmap 3.12+, cam_from_world is a method
+        cfw = pyimg.cam_from_world()
+        matrix = cfw.matrix()
+        print(f"    cam_from_world().matrix() shape: {matrix.shape}")
+        print(f"    cam_from_world().matrix():\n{matrix}")
 
         # Get calibration
         calib = pycam.calibration_matrix()

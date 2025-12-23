@@ -92,33 +92,56 @@ def batch_np_matrix_to_pycolmap(
 
     num_points3D = len(valid_idx)
 
-    # For pycolmap 3.12+, create Rig
+    # For pycolmap 3.12+, we need to:
+    # 1. First create all cameras and add all sensors to rig
+    # 2. Then add rig to reconstruction
+    # 3. Then create images and frames
+    # This is because sensors must be added to rig BEFORE rig is added to reconstruction
+
     if PYCOLMAP_USE_FRAME:
         rig = pycolmap.Rig(rig_id=1)
-        rig_added = False
+
+        # First pass: create all cameras and add sensors to rig
+        cameras_dict = {}
+        for fidx in range(N):
+            if (fidx == 0) or (not shared_camera):
+                pycolmap_intri = _build_pycolmap_intri(fidx, intrinsics, camera_type, extra_params)
+                camera = pycolmap.Camera(
+                    model=camera_type, width=image_size[0], height=image_size[1], params=pycolmap_intri, camera_id=fidx + 1
+                )
+                reconstruction.add_camera(camera)
+                cameras_dict[fidx] = camera
+
+                if fidx == 0:
+                    rig.add_ref_sensor(camera.sensor_id)
+                else:
+                    rig.add_sensor(camera.sensor_id, pycolmap.Rigid3d())
+
+        # Add rig after ALL sensors are added
+        reconstruction.add_rig(rig)
+
+        # Get the camera to use (for shared_camera, always use the first one)
+        if shared_camera:
+            shared_cam = cameras_dict[0]
 
     camera = None
     # frame idx
     for fidx in range(N):
         # set camera
-        if camera is None or (not shared_camera):
-            pycolmap_intri = _build_pycolmap_intri(fidx, intrinsics, camera_type, extra_params)
-
-            camera = pycolmap.Camera(
-                model=camera_type, width=image_size[0], height=image_size[1], params=pycolmap_intri, camera_id=fidx + 1
-            )
-
-            # add camera
-            reconstruction.add_camera(camera)
-
-            # For pycolmap 3.12+: add sensor to rig
-            if PYCOLMAP_USE_FRAME:
-                if fidx == 0:
-                    rig.add_ref_sensor(camera.sensor_id)
-                else:
-                    # add_sensor requires (sensor_id, sensor_from_rig transform)
-                    identity_pose = pycolmap.Rigid3d()  # Default constructor creates identity transform
-                    rig.add_sensor(camera.sensor_id, identity_pose)
+        if PYCOLMAP_USE_FRAME:
+            # Cameras already created in first pass
+            if shared_camera:
+                camera = shared_cam
+            else:
+                camera = cameras_dict[fidx]
+        else:
+            # For older pycolmap, create cameras in the loop
+            if camera is None or (not shared_camera):
+                pycolmap_intri = _build_pycolmap_intri(fidx, intrinsics, camera_type, extra_params)
+                camera = pycolmap.Camera(
+                    model=camera_type, width=image_size[0], height=image_size[1], params=pycolmap_intri, camera_id=fidx + 1
+                )
+                reconstruction.add_camera(camera)
 
         # set image pose
         cam_from_world = pycolmap.Rigid3d(
@@ -127,11 +150,6 @@ def batch_np_matrix_to_pycolmap(
 
         if PYCOLMAP_USE_FRAME:
             # pycolmap 3.12+: use Frame/Rig architecture
-            # Add rig only once
-            if not rig_added:
-                reconstruction.add_rig(rig)
-                rig_added = True
-
             frame_id = fidx + 1
 
             # Create Image first to get its data_id
@@ -221,7 +239,11 @@ def pycolmap_to_batch_np_matrix(reconstruction, device="cpu", camera_type="SIMPL
         # Extract and append extrinsics
         pyimg = reconstruction.images[i + 1]
         pycam = reconstruction.cameras[pyimg.camera_id]
-        matrix = pyimg.cam_from_world.matrix()
+        # In pycolmap 3.12+, cam_from_world is a method; in older versions it's a property
+        if PYCOLMAP_USE_FRAME:
+            matrix = pyimg.cam_from_world().matrix()
+        else:
+            matrix = pyimg.cam_from_world.matrix()
         extrinsics.append(matrix)
 
         # Extract and append intrinsics
@@ -281,33 +303,56 @@ def batch_np_matrix_to_pycolmap_wo_track(
     for vidx in range(P):
         reconstruction.add_point3D(points3d[vidx], pycolmap.Track(), points_rgb[vidx])
 
-    # For pycolmap 3.12+, create Rig
+    # For pycolmap 3.12+, we need to:
+    # 1. First create all cameras and add all sensors to rig
+    # 2. Then add rig to reconstruction
+    # 3. Then create images and frames
+    # This is because sensors must be added to rig BEFORE rig is added to reconstruction
+
     if PYCOLMAP_USE_FRAME:
         rig = pycolmap.Rig(rig_id=1)
-        rig_added = False
+
+        # First pass: create all cameras and add sensors to rig
+        cameras_dict = {}
+        for fidx in range(N):
+            if (fidx == 0) or (not shared_camera):
+                pycolmap_intri = _build_pycolmap_intri(fidx, intrinsics, camera_type)
+                camera = pycolmap.Camera(
+                    model=camera_type, width=image_size[0], height=image_size[1], params=pycolmap_intri, camera_id=fidx + 1
+                )
+                reconstruction.add_camera(camera)
+                cameras_dict[fidx] = camera
+
+                if fidx == 0:
+                    rig.add_ref_sensor(camera.sensor_id)
+                else:
+                    rig.add_sensor(camera.sensor_id, pycolmap.Rigid3d())
+
+        # Add rig after ALL sensors are added
+        reconstruction.add_rig(rig)
+
+        # Get the camera to use (for shared_camera, always use the first one)
+        if shared_camera:
+            shared_cam = cameras_dict[0]
 
     camera = None
     # frame idx
     for fidx in range(N):
         # set camera
-        if camera is None or (not shared_camera):
-            pycolmap_intri = _build_pycolmap_intri(fidx, intrinsics, camera_type)
-
-            camera = pycolmap.Camera(
-                model=camera_type, width=image_size[0], height=image_size[1], params=pycolmap_intri, camera_id=fidx + 1
-            )
-
-            # add camera
-            reconstruction.add_camera(camera)
-
-            # For pycolmap 3.12+: add sensor to rig
-            if PYCOLMAP_USE_FRAME:
-                if fidx == 0:
-                    rig.add_ref_sensor(camera.sensor_id)
-                else:
-                    # add_sensor requires (sensor_id, sensor_from_rig transform)
-                    identity_pose = pycolmap.Rigid3d()  # Default constructor creates identity transform
-                    rig.add_sensor(camera.sensor_id, identity_pose)
+        if PYCOLMAP_USE_FRAME:
+            # Cameras already created in first pass
+            if shared_camera:
+                camera = shared_cam
+            else:
+                camera = cameras_dict[fidx]
+        else:
+            # For older pycolmap, create cameras in the loop
+            if camera is None or (not shared_camera):
+                pycolmap_intri = _build_pycolmap_intri(fidx, intrinsics, camera_type)
+                camera = pycolmap.Camera(
+                    model=camera_type, width=image_size[0], height=image_size[1], params=pycolmap_intri, camera_id=fidx + 1
+                )
+                reconstruction.add_camera(camera)
 
         # set image pose
         cam_from_world = pycolmap.Rigid3d(
@@ -316,11 +361,6 @@ def batch_np_matrix_to_pycolmap_wo_track(
 
         if PYCOLMAP_USE_FRAME:
             # pycolmap 3.12+: use Frame/Rig architecture
-            # Add rig only once
-            if not rig_added:
-                reconstruction.add_rig(rig)
-                rig_added = True
-
             frame_id = fidx + 1
 
             # Create Image first to get its data_id
