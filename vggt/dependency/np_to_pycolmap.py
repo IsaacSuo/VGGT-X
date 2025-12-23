@@ -92,7 +92,7 @@ def batch_np_matrix_to_pycolmap(
 
     num_points3D = len(valid_idx)
 
-    # For pycolmap 3.12+, create a single Rig for all cameras
+    # For pycolmap 3.12+, create Rig
     if PYCOLMAP_USE_FRAME:
         rig = pycolmap.Rig(rig_id=1)
 
@@ -121,7 +121,20 @@ def batch_np_matrix_to_pycolmap(
 
         if PYCOLMAP_USE_FRAME:
             # pycolmap 3.12+: use Frame/Rig architecture
+            # Must add Rig and Frame BEFORE adding Image with frame_id
+            if fidx == 0:
+                reconstruction.add_rig(rig)
+
+            # Create and add Frame first
             frame_id = fidx + 1
+            frame = pycolmap.Frame(
+                frame_id=frame_id,
+                rig_id=1,
+                rig_from_world=cam_from_world
+            )
+            reconstruction.add_frame(frame)
+
+            # Now create Image with frame_id
             image = pycolmap.Image(
                 image_id=fidx + 1, name=f"image_{fidx + 1}", camera_id=camera.camera_id, frame_id=frame_id
             )
@@ -166,19 +179,9 @@ def batch_np_matrix_to_pycolmap(
         # add image
         reconstruction.add_image(image)
 
-        # For pycolmap 3.12+: create and add Frame with pose
+        # For pycolmap 3.12+: link image to frame
         if PYCOLMAP_USE_FRAME:
-            frame = pycolmap.Frame(
-                frame_id=fidx + 1,
-                rig_id=1,
-                rig_from_world=cam_from_world  # For single camera with ref sensor, rig_from_world = cam_from_world
-            )
             frame.add_data_id(image.data_id)
-            reconstruction.add_frame(frame)
-
-    # For pycolmap 3.12+: add rig to reconstruction
-    if PYCOLMAP_USE_FRAME:
-        reconstruction.add_rig(rig)
 
     return reconstruction, valid_mask
 
@@ -272,9 +275,10 @@ def batch_np_matrix_to_pycolmap_wo_track(
     for vidx in range(P):
         reconstruction.add_point3D(points3d[vidx], pycolmap.Track(), points_rgb[vidx])
 
-    # For pycolmap 3.12+, create a single Rig for all cameras
+    # For pycolmap 3.12+, create and add Rig first
     if PYCOLMAP_USE_FRAME:
         rig = pycolmap.Rig(rig_id=1)
+        # Note: we'll add ref_sensor after adding camera to reconstruction
 
     camera = None
     # frame idx
@@ -301,7 +305,21 @@ def batch_np_matrix_to_pycolmap_wo_track(
 
         if PYCOLMAP_USE_FRAME:
             # pycolmap 3.12+: use Frame/Rig architecture
+            # Must add Rig and Frame BEFORE adding Image with frame_id
+            if fidx == 0:
+                # Add rig to reconstruction first (only once)
+                reconstruction.add_rig(rig)
+
+            # Create and add Frame first
             frame_id = fidx + 1
+            frame = pycolmap.Frame(
+                frame_id=frame_id,
+                rig_id=1,
+                rig_from_world=cam_from_world
+            )
+            reconstruction.add_frame(frame)
+
+            # Now create Image with frame_id
             image = pycolmap.Image(
                 image_id=fidx + 1, name=f"image_{fidx + 1}", camera_id=camera.camera_id, frame_id=frame_id
             )
@@ -343,19 +361,9 @@ def batch_np_matrix_to_pycolmap_wo_track(
         # add image
         reconstruction.add_image(image)
 
-        # For pycolmap 3.12+: create and add Frame with pose
+        # For pycolmap 3.12+: link image to frame
         if PYCOLMAP_USE_FRAME:
-            frame = pycolmap.Frame(
-                frame_id=fidx + 1,
-                rig_id=1,
-                rig_from_world=cam_from_world  # For single camera with ref sensor, rig_from_world = cam_from_world
-            )
             frame.add_data_id(image.data_id)
-            reconstruction.add_frame(frame)
-
-    # For pycolmap 3.12+: add rig to reconstruction
-    if PYCOLMAP_USE_FRAME:
-        reconstruction.add_rig(rig)
 
     return reconstruction
 
