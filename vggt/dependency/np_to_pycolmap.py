@@ -6,7 +6,12 @@
 
 import numpy as np
 import pycolmap
+from packaging import version
 from .projection import project_3D_points_np
+
+# Check pycolmap version for API compatibility
+PYCOLMAP_VERSION = version.parse(pycolmap.__version__)
+PYCOLMAP_USE_FRAME = PYCOLMAP_VERSION >= version.parse("3.12")
 
 
 def batch_np_matrix_to_pycolmap(
@@ -86,6 +91,11 @@ def batch_np_matrix_to_pycolmap(
         reconstruction.add_point3D(points3d[vidx], pycolmap.Track(), rgb)
 
     num_points3D = len(valid_idx)
+
+    # For pycolmap 3.12+, create a single Rig for all cameras
+    if PYCOLMAP_USE_FRAME:
+        rig = pycolmap.Rig(rig_id=1)
+
     camera = None
     # frame idx
     for fidx in range(N):
@@ -100,15 +110,26 @@ def batch_np_matrix_to_pycolmap(
             # add camera
             reconstruction.add_camera(camera)
 
-        # set image
+            # For pycolmap 3.12+, add camera as reference sensor to rig
+            if PYCOLMAP_USE_FRAME:
+                rig.add_ref_sensor(camera.camera_id)
+
+        # set image pose
         cam_from_world = pycolmap.Rigid3d(
             pycolmap.Rotation3d(extrinsics[fidx][:3, :3]), extrinsics[fidx][:3, 3]
         )  # Rot and Trans
 
-        image = pycolmap.Image(
-            image_id=fidx + 1, name=f"image_{fidx + 1}", camera_id=camera.camera_id
-        )
-        image.cam_from_world = cam_from_world
+        if PYCOLMAP_USE_FRAME:
+            # pycolmap 3.12+: use Frame/Rig architecture
+            frame_id = fidx + 1
+            image = pycolmap.Image(
+                image_id=fidx + 1, name=f"image_{fidx + 1}", camera_id=camera.camera_id, frame_id=frame_id
+            )
+        else:
+            # pycolmap < 3.12: set cam_from_world directly
+            image = pycolmap.Image(
+                id=fidx + 1, name=f"image_{fidx + 1}", camera_id=camera.camera_id, cam_from_world=cam_from_world
+            )
 
         points2D_list = []
 
@@ -135,13 +156,29 @@ def batch_np_matrix_to_pycolmap(
 
         try:
             image.points2D = pycolmap.Point2DList(points2D_list)
-            image.registered = True
+            if not PYCOLMAP_USE_FRAME:
+                image.registered = True
         except:
             print(f"frame {fidx + 1} is out of BA")
-            image.registered = False
+            if not PYCOLMAP_USE_FRAME:
+                image.registered = False
 
         # add image
         reconstruction.add_image(image)
+
+        # For pycolmap 3.12+: create and add Frame with pose
+        if PYCOLMAP_USE_FRAME:
+            frame = pycolmap.Frame(
+                frame_id=fidx + 1,
+                rig_id=1,
+                rig_from_world=cam_from_world  # For single camera with ref sensor, rig_from_world = cam_from_world
+            )
+            frame.add_data_id(image.data_id)
+            reconstruction.add_frame(frame)
+
+    # For pycolmap 3.12+: add rig to reconstruction
+    if PYCOLMAP_USE_FRAME:
+        reconstruction.add_rig(rig)
 
     return reconstruction, valid_mask
 
@@ -235,6 +272,10 @@ def batch_np_matrix_to_pycolmap_wo_track(
     for vidx in range(P):
         reconstruction.add_point3D(points3d[vidx], pycolmap.Track(), points_rgb[vidx])
 
+    # For pycolmap 3.12+, create a single Rig for all cameras
+    if PYCOLMAP_USE_FRAME:
+        rig = pycolmap.Rig(rig_id=1)
+
     camera = None
     # frame idx
     for fidx in range(N):
@@ -249,15 +290,26 @@ def batch_np_matrix_to_pycolmap_wo_track(
             # add camera
             reconstruction.add_camera(camera)
 
-        # set image
+            # For pycolmap 3.12+, add camera as reference sensor to rig
+            if PYCOLMAP_USE_FRAME:
+                rig.add_ref_sensor(camera.camera_id)
+
+        # set image pose
         cam_from_world = pycolmap.Rigid3d(
             pycolmap.Rotation3d(extrinsics[fidx][:3, :3]), extrinsics[fidx][:3, 3]
         )  # Rot and Trans
 
-        image = pycolmap.Image(
-            image_id=fidx + 1, name=f"image_{fidx + 1}", camera_id=camera.camera_id
-        )
-        image.cam_from_world = cam_from_world
+        if PYCOLMAP_USE_FRAME:
+            # pycolmap 3.12+: use Frame/Rig architecture
+            frame_id = fidx + 1
+            image = pycolmap.Image(
+                image_id=fidx + 1, name=f"image_{fidx + 1}", camera_id=camera.camera_id, frame_id=frame_id
+            )
+        else:
+            # pycolmap < 3.12: set cam_from_world directly
+            image = pycolmap.Image(
+                id=fidx + 1, name=f"image_{fidx + 1}", camera_id=camera.camera_id, cam_from_world=cam_from_world
+            )
 
         points2D_list = []
 
@@ -281,13 +333,29 @@ def batch_np_matrix_to_pycolmap_wo_track(
 
         try:
             image.points2D = pycolmap.Point2DList(points2D_list)
-            image.registered = True
+            if not PYCOLMAP_USE_FRAME:
+                image.registered = True
         except:
             print(f"frame {fidx + 1} does not have any points")
-            image.registered = False
+            if not PYCOLMAP_USE_FRAME:
+                image.registered = False
 
         # add image
         reconstruction.add_image(image)
+
+        # For pycolmap 3.12+: create and add Frame with pose
+        if PYCOLMAP_USE_FRAME:
+            frame = pycolmap.Frame(
+                frame_id=fidx + 1,
+                rig_id=1,
+                rig_from_world=cam_from_world  # For single camera with ref sensor, rig_from_world = cam_from_world
+            )
+            frame.add_data_id(image.data_id)
+            reconstruction.add_frame(frame)
+
+    # For pycolmap 3.12+: add rig to reconstruction
+    if PYCOLMAP_USE_FRAME:
+        reconstruction.add_rig(rig)
 
     return reconstruction
 
