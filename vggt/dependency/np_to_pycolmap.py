@@ -112,7 +112,7 @@ def batch_np_matrix_to_pycolmap(
 
             # For pycolmap 3.12+, add camera as reference sensor to rig
             if PYCOLMAP_USE_FRAME:
-                rig.add_ref_sensor(camera.camera_id)
+                rig.add_ref_sensor(camera.sensor_id)
 
         # set image pose
         cam_from_world = pycolmap.Rigid3d(
@@ -292,7 +292,7 @@ def batch_np_matrix_to_pycolmap_wo_track(
 
             # For pycolmap 3.12+, add camera as reference sensor to rig
             if PYCOLMAP_USE_FRAME:
-                rig.add_ref_sensor(camera.camera_id)
+                rig.add_ref_sensor(camera.sensor_id)
 
         # set image pose
         cam_from_world = pycolmap.Rigid3d(
