@@ -110,10 +110,6 @@ def batch_np_matrix_to_pycolmap(
             # add camera
             reconstruction.add_camera(camera)
 
-            # For pycolmap 3.12+, add camera as reference sensor to rig
-            if PYCOLMAP_USE_FRAME:
-                rig.add_ref_sensor(camera.sensor_id)
-
         # set image pose
         cam_from_world = pycolmap.Rigid3d(
             pycolmap.Rotation3d(extrinsics[fidx][:3, :3]), extrinsics[fidx][:3, 3]
@@ -121,8 +117,9 @@ def batch_np_matrix_to_pycolmap(
 
         if PYCOLMAP_USE_FRAME:
             # pycolmap 3.12+: use Frame/Rig architecture
-            # Must add Rig first (only once)
+            # Set ref_sensor and add rig only once (first iteration)
             if fidx == 0:
+                rig.add_ref_sensor(camera.sensor_id)
                 reconstruction.add_rig(rig)
 
             frame_id = fidx + 1
@@ -293,10 +290,6 @@ def batch_np_matrix_to_pycolmap_wo_track(
             # add camera
             reconstruction.add_camera(camera)
 
-            # For pycolmap 3.12+, add camera as reference sensor to rig
-            if PYCOLMAP_USE_FRAME:
-                rig.add_ref_sensor(camera.sensor_id)
-
         # set image pose
         cam_from_world = pycolmap.Rigid3d(
             pycolmap.Rotation3d(extrinsics[fidx][:3, :3]), extrinsics[fidx][:3, 3]
@@ -304,8 +297,9 @@ def batch_np_matrix_to_pycolmap_wo_track(
 
         if PYCOLMAP_USE_FRAME:
             # pycolmap 3.12+: use Frame/Rig architecture
-            # Must add Rig first (only once)
+            # Set ref_sensor and add rig only once (first iteration)
             if fidx == 0:
+                rig.add_ref_sensor(camera.sensor_id)
                 reconstruction.add_rig(rig)
 
             frame_id = fidx + 1
