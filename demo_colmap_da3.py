@@ -10,7 +10,10 @@ Replaces VGGT model with DA3 for depth and pose estimation.
 """
 
 import sys
-sys.path.insert(0, '/home/fangsuo/py/VGGT-X/Depth-Anything-3/src')
+from pathlib import Path
+# Add Depth-Anything-3/src to path (relative to this script)
+_DA3_PATH = Path(__file__).parent / "Depth-Anything-3" / "src"
+sys.path.insert(0, str(_DA3_PATH))
 
 import random
 import numpy as np
