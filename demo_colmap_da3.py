@@ -89,6 +89,14 @@ def run_DA3(image_paths, device, dtype, model_name='da3-giant', process_res=504)
     print(f"[DA3 Debug] depth_map range: [{depth_map.min():.4f}, {depth_map.max():.4f}]")
     print(f"[DA3 Debug] extrinsic sample (first frame):\n{extrinsic[0]}")
 
+    # Release GPU memory
+    del model
+    del prediction
+    torch.cuda.empty_cache()
+    import gc
+    gc.collect()
+    print(f"[DA3 Debug] GPU memory released")
+
     return extrinsic, intrinsic, depth_map, depth_conf, processed_size
 
 
