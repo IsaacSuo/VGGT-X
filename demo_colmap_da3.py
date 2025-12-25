@@ -212,8 +212,12 @@ def demo_fn(args):
     )
 
     # Load images for GA and evaluation (if needed)
-    img_load_resolution = args.process_res
+    # Use DA3's actual output size, not process_res (which may differ due to aspect ratio)
+    img_load_resolution = max(processed_size)  # Use the larger dimension
     images, original_coords = load_images_for_ga(image_path_list, img_load_resolution)
+
+    # Resize images to match DA3's depth output size (H, W)
+    images = F.interpolate(images, size=processed_size, mode="bilinear", align_corners=False)
     original_coords = original_coords.to(device)
     images = images.to(device)
 
