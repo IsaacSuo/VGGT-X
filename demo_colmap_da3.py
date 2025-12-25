@@ -10,7 +10,12 @@ Replaces VGGT model with DA3 for depth and pose estimation.
 """
 
 import sys
+import os
 from pathlib import Path
+
+# Use HuggingFace mirror for China
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+
 # Add Depth-Anything-3/src to path (relative to this script)
 _DA3_PATH = Path(__file__).parent / "Depth-Anything-3" / "src"
 sys.path.insert(0, str(_DA3_PATH))
@@ -18,7 +23,6 @@ sys.path.insert(0, str(_DA3_PATH))
 import random
 import numpy as np
 import glob
-import os
 import torch
 import torch.nn.functional as F
 
