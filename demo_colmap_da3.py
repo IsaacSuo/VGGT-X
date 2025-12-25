@@ -141,7 +141,7 @@ def parse_args():
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument("--use_ga", action="store_true", default=False, help="Whether to apply global alignment for better reconstruction")
     parser.add_argument("--save_depth", action="store_true", default=False, help="If save depth")
-    parser.add_argument("--model_name", type=str, default="da3-giant", help="DA3 model variant")
+    parser.add_argument("--model_name", type=str, default="da3metric-large", help="DA3 model variant")
     parser.add_argument("--process_res", type=int, default=504, help="Processing resolution for DA3")
     parser.add_argument("--total_frame_num", type=int, default=None, help="Number of frames to reconstruct")
     ######### GA parameters #########
