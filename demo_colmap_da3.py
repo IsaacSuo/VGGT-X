@@ -77,7 +77,7 @@ def run_DA3(image_paths, device, dtype, model_name='da3-giant', process_res=504)
     # Extract outputs (already numpy arrays)
     extrinsic = prediction.extrinsics  # [N, 3, 4]
     intrinsic = prediction.intrinsics  # [N, 3, 3]
-    depth_map = prediction.depth       # [N, H, W]
+    depth_map = prediction.depth[..., np.newaxis]  # [N, H, W] -> [N, H, W, 1] to match VGGT format
     depth_conf = prediction.conf       # [N, H, W]
 
     # DA3 returns processed image size, store for later use
