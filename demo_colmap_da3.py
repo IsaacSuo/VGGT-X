@@ -62,10 +62,12 @@ def run_DA3(image_paths, device, dtype, model_name='da3-giant', process_res=504)
         depth_map: [N, H, W] numpy array
         depth_conf: [N, H, W] numpy array
     """
-    # Load DA3 model
-    model = DepthAnything3(model_name=model_name)
+    # Load DA3 model with pretrained weights
+    # Convert short name to HuggingFace model ID
+    model_id = f"depth-anything/{model_name.upper()}"
+    model = DepthAnything3.from_pretrained(model_id)
     model = model.to(device).eval()
-    print(f"DA3 model ({model_name}) loaded")
+    print(f"DA3 model ({model_id}) loaded")
 
     # Run inference
     prediction = model.inference(
