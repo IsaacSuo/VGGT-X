@@ -63,8 +63,20 @@ def run_DA3(image_paths, device, dtype, model_name='da3-giant', process_res=504)
         depth_conf: [N, H, W] numpy array
     """
     # Load DA3 model with pretrained weights
-    # Convert short name to HuggingFace model ID
-    model_id = f"depth-anything/{model_name.upper()}"
+    # model_name can be:
+    #   - short name like 'da3-large' -> converts to HuggingFace ID 'depth-anything/DA3-LARGE'
+    #   - full HuggingFace ID like 'depth-anything/DA3-LARGE'
+    #   - local path like '/path/to/model'
+    if os.path.isdir(model_name):
+        # Local path
+        model_id = model_name
+    elif '/' in model_name:
+        # Already a HuggingFace ID
+        model_id = model_name
+    else:
+        # Short name, convert to HuggingFace ID
+        model_id = f"depth-anything/{model_name.upper()}"
+
     model = DepthAnything3.from_pretrained(model_id)
     model = model.to(device).eval()
     print(f"DA3 model ({model_id}) loaded")
