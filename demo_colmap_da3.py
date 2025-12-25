@@ -83,6 +83,12 @@ def run_DA3(image_paths, device, dtype, model_name='da3-giant', process_res=504)
     # DA3 returns processed image size, store for later use
     processed_size = (prediction.depth.shape[1], prediction.depth.shape[2])  # (H, W)
 
+    # Debug: check for NaN/Inf in outputs
+    print(f"[DA3 Debug] extrinsic shape: {extrinsic.shape}, has NaN: {np.isnan(extrinsic).any()}, has Inf: {np.isinf(extrinsic).any()}")
+    print(f"[DA3 Debug] intrinsic shape: {intrinsic.shape}, has NaN: {np.isnan(intrinsic).any()}, has Inf: {np.isinf(intrinsic).any()}")
+    print(f"[DA3 Debug] depth_map range: [{depth_map.min():.4f}, {depth_map.max():.4f}]")
+    print(f"[DA3 Debug] extrinsic sample (first frame):\n{extrinsic[0]}")
+
     return extrinsic, intrinsic, depth_map, depth_conf, processed_size
 
 
