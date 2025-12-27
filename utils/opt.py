@@ -201,11 +201,13 @@ def extract_matches(extrinsic, intrinsic, images, depth_conf, base_image_path_li
     corr_weights /= corr_weights.mean()
     
     # set corr_weights to 0 for points outside the image frame
-    in_frame_i = (corr_points_i[..., 0] > images.shape[-1]) & (corr_points_i[..., 0] < 0) & \
-                    (corr_points_i[..., 1] > images.shape[-2]) & (corr_points_i[..., 1] < 0)
-    in_frame_j = (corr_points_j[..., 0] > images.shape[-1]) & (corr_points_j[..., 0] < 0) & \
-                    (corr_points_j[..., 1] > images.shape[-2]) & (corr_points_j[..., 1] < 0)
-    corr_weights[in_frame_i & in_frame_j] = 0.0
+    W = images.shape[-1]
+    H = images.shape[-2]
+    in_frame_i = (corr_points_i[..., 0] >= 0) & (corr_points_i[..., 0] < W) & \
+                 (corr_points_i[..., 1] >= 0) & (corr_points_i[..., 1] < H)
+    in_frame_j = (corr_points_j[..., 0] >= 0) & (corr_points_j[..., 0] < W) & \
+                 (corr_points_j[..., 1] >= 0) & (corr_points_j[..., 1] < H)
+    corr_weights[~(in_frame_i & in_frame_j)] = 0.0
     
     # rearrange corr_points_i_normalized and corr_points_j_normalized to (P, N, 2)
     P, N = len(num_matches), max(num_matches)
@@ -324,7 +326,7 @@ def pose_optimization(match_outputs,
     loss_list = []
     for iter in tqdm(range(niter or 1), desc="Pose Optimization..."):
 
-        repeat_cnt = 1 if len(qvec) else shared_intrinsics
+        repeat_cnt = len(qvec) if shared_intrinsics else 1
         
         K, (w2cam, cam2w) = make_K_cam_depth(log_focals.repeat(repeat_cnt), pps.repeat(repeat_cnt, 1), tvec, qvec, min_focals, max_focals, imsizes)
         

@@ -65,6 +65,8 @@ def run_DA3(image_paths, device, dtype, model_name='da3-giant', process_res=504)
         intrinsic: [N, 3, 3] numpy array
         depth_map: [N, H, W] numpy array
         depth_conf: [N, H, W] numpy array
+        processed_size: (H, W) tuple
+        processed_images: [N, 3, H, W] tensor for GA (normalized to [0, 1])
     """
     # Load DA3 model with pretrained weights
     # model_name can be:
@@ -101,13 +103,22 @@ def run_DA3(image_paths, device, dtype, model_name='da3-giant', process_res=504)
     # DA3 returns processed image size, store for later use
     processed_size = (prediction.depth.shape[1], prediction.depth.shape[2])  # (H, W)
 
+    # Get processed images for GA (convert from [N, H, W, 3] uint8 to [N, 3, H, W] float [0, 1])
+    processed_images = prediction.processed_images  # [N, H, W, 3] uint8
+    processed_images = torch.from_numpy(processed_images).permute(0, 3, 1, 2).float() / 255.0  # [N, 3, H, W]
+
     # Debug: check for NaN/Inf in outputs
     print(f"[DA3 Debug] extrinsic shape: {extrinsic.shape}, has NaN: {np.isnan(extrinsic).any()}, has Inf: {np.isinf(extrinsic).any()}")
     print(f"[DA3 Debug] intrinsic shape: {intrinsic.shape}, has NaN: {np.isnan(intrinsic).any()}, has Inf: {np.isinf(intrinsic).any()}")
     print(f"[DA3 Debug] depth_map range: [{depth_map.min():.4f}, {depth_map.max():.4f}]")
     print(f"[DA3 Debug] extrinsic sample (first frame):\n{extrinsic[0]}")
+    print(f"[DA3 Debug] processed_images shape: {processed_images.shape}")
 
-    return extrinsic, intrinsic, depth_map, depth_conf, processed_size
+    # Release model memory
+    del model
+    torch.cuda.empty_cache()
+
+    return extrinsic, intrinsic, depth_map, depth_conf, processed_size, processed_images
 
 
 def load_images_for_ga(image_paths, target_size):
@@ -225,19 +236,24 @@ def demo_fn(args):
     start_time = datetime.now()
 
     # Run DA3 to estimate camera and depth
-    extrinsic, intrinsic, depth_map, depth_conf, processed_size = run_DA3(
+    extrinsic, intrinsic, depth_map, depth_conf, processed_size, images = run_DA3(
         image_path_list, device, dtype, args.model_name, args.process_res
     )
 
-    # Load images for GA and evaluation (if needed)
-    # Use DA3's actual output size, not process_res (which may differ due to aspect ratio)
-    img_load_resolution = max(processed_size)  # Use the larger dimension
-    images, original_coords = load_images_for_ga(image_path_list, img_load_resolution)
-
-    # Resize images to match DA3's depth output size (H, W)
-    images = F.interpolate(images, size=processed_size, mode="bilinear", align_corners=False)
-    original_coords = original_coords.to(device)
+    # Use DA3's processed images directly for GA (coordinate systems now match!)
+    img_load_resolution = max(processed_size)
     images = images.to(device)
+
+    # Create original_coords for DA3 processed images (no padding, just direct resize)
+    # Format: [x1, y1, x2, y2, orig_width, orig_height]
+    from PIL import Image as PILImage
+    original_coords = []
+    for image_path in image_path_list:
+        with PILImage.open(image_path) as img:
+            orig_w, orig_h = img.size
+        # DA3 processed images have no padding, content fills [0, W) x [0, H)
+        original_coords.append([0, 0, processed_size[1], processed_size[0], orig_w, orig_h])
+    original_coords = torch.tensor(original_coords, dtype=torch.float32, device=device)
 
     if args.use_ga:
         if os.path.exists(os.path.join(target_scene_dir, "matches.pt")):
