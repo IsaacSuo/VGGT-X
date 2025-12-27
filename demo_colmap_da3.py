@@ -294,6 +294,7 @@ def demo_fn(args):
                 pcd_gt, points_3d_transformed, depth_conf, images,
                 images_gt_updated, original_coords,
                 img_load_resolution, conf_thresh=1.5 if depth_conf.max() > 1.5 else conf_thres_value,
+                depth_hw=processed_size,
             )
 
             write_evaluation_results(target_scene_dir, len(images_gt_updated), auc_results, pcd_results,

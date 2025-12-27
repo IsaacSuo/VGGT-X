@@ -32,19 +32,32 @@ def write_evaluation_results(target_dir: str, images_count: int, auc_results: di
 
 @torch.inference_mode()
 def evaluate_pcd(
-        pcd_gt, 
-        points_3d, 
+        pcd_gt,
+        points_3d,
         depth_conf,
         images,
-        images_gt_updated, 
-        original_coords, 
+        images_gt_updated,
+        original_coords,
         vggt_fixed_resolution=518,
-        conf_thresh=1.0):
-    
+        conf_thresh=1.0,
+        depth_hw=None):
+    """
+    Evaluate point cloud quality.
+
+    Args:
+        depth_hw: Tuple of (height, width) of the depth map. If None, assumes square.
+    """
+
     pcd_xyz_gt_list = []
     pcd_rgb_gt_list = []
     pcd_xyz_sampled_list = []
     pcd_rgb_sampled_list = []
+
+    # Get actual depth map dimensions
+    if depth_hw is not None:
+        depth_h, depth_w = depth_hw
+    else:
+        depth_h = depth_w = vggt_fixed_resolution
 
     for k, idx in tqdm(enumerate(list(images_gt_updated.keys())), desc="Evaluating Points..."):
 
@@ -73,10 +86,15 @@ def evaluate_pcd(
         pcd_conf_sampled = np.zeros_like(pcd_rgb_gt[:, 0])  # Assuming confidence is a single channel
         pcd_rgb_sampled = np.zeros_like(pcd_rgb_gt)
         original_coords_arr = original_coords.cpu().numpy()
-        resize_ratio = (original_coords_arr[:, -2:].max() / vggt_fixed_resolution)
 
-        xys_gt_scaled[:, 0] = xys_gt[:, 0] / resize_ratio + original_coords_arr[k, 0]
-        xys_gt_scaled[:, 1] = xys_gt[:, 1] / resize_ratio + original_coords_arr[k, 1]
+        # Calculate resize ratio for x (width) and y (height) separately
+        orig_w = original_coords_arr[k, -2]
+        orig_h = original_coords_arr[k, -1]
+        resize_ratio_x = orig_w / depth_w
+        resize_ratio_y = orig_h / depth_h
+
+        xys_gt_scaled[:, 0] = xys_gt[:, 0] / resize_ratio_x + original_coords_arr[k, 0]
+        xys_gt_scaled[:, 1] = xys_gt[:, 1] / resize_ratio_y + original_coords_arr[k, 1]
 
         xys_gt_scaled[:, 0] = np.clip(xys_gt_scaled[:, 0], 0, points_3d.shape[2] - 1)
         xys_gt_scaled[:, 1] = np.clip(xys_gt_scaled[:, 1], 0, points_3d.shape[1] - 1)
