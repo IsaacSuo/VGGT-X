@@ -3,7 +3,7 @@
 # Usage: bash run_comparison.sh /path/to/mipnerf360
 
 DATASET_ROOT="${1:-.}"
-SCENES="garden counter room bonsai bicycle stump kitchen"
+SCENES="${SCENES:-garden counter room bonsai bicycle stump kitchen}"
 
 echo "Dataset root: $DATASET_ROOT"
 echo "Scenes: $SCENES"
