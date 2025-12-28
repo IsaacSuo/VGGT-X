@@ -29,6 +29,7 @@ for scene in $SCENES; do
         --scene_dir "$SCENE_DIR" \
         --post_fix "_da3" \
         --model_name da3-giant \
+        --process_res 476 \
         2>&1 | tee -a logs/da3_${scene}.log
 
     # 2. DA3 + GA
@@ -37,6 +38,7 @@ for scene in $SCENES; do
         --scene_dir "$SCENE_DIR" \
         --post_fix "_da3_ga" \
         --model_name da3-giant \
+        --process_res 476 \
         --use_ga \
         2>&1 | tee -a logs/da3_ga_${scene}.log
 
