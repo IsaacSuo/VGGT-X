@@ -4,9 +4,11 @@
 
 DATASET_ROOT="${1:-.}"
 SCENES="${SCENES:-garden counter room bonsai bicycle stump kitchen}"
+MODEL_NAME="${MODEL_NAME:-da3-large}"
 
 echo "Dataset root: $DATASET_ROOT"
 echo "Scenes: $SCENES"
+echo "DA3 Model: $MODEL_NAME"
 echo "Full evaluation (all frames)"
 echo ""
 
@@ -42,7 +44,7 @@ for scene in $SCENES; do
     python demo_colmap_da3.py \
         --scene_dir "$SCENE_DIR" \
         --post_fix "_da3" \
-        --model_name da3-giant \
+        --model_name $MODEL_NAME \
         2>&1 | tee -a logs/da3_${scene}.log
 
     # 4. DA3 + GA
@@ -50,7 +52,7 @@ for scene in $SCENES; do
     python demo_colmap_da3.py \
         --scene_dir "$SCENE_DIR" \
         --post_fix "_da3_ga" \
-        --model_name da3-giant \
+        --model_name $MODEL_NAME \
         --use_ga \
         2>&1 | tee -a logs/da3_ga_${scene}.log
 
