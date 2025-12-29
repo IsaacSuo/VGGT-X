@@ -87,12 +87,13 @@ def run_DA3(image_paths, device, dtype, model_name='da3-giant', process_res=504)
     model = model.to(device).eval()
     print(f"DA3 model ({model_id}) loaded")
 
-    # Run inference
-    prediction = model.inference(
-        image_paths,
-        process_res=process_res,
-        process_res_method='upper_bound_resize',
-    )
+    # Run inference (no_grad to save memory)
+    with torch.inference_mode():
+        prediction = model.inference(
+            image_paths,
+            process_res=process_res,
+            process_res_method='upper_bound_resize',
+        )
 
     # Extract outputs (already numpy arrays)
     extrinsic = prediction.extrinsics  # [N, 3, 4]
